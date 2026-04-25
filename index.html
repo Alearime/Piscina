@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horarios · Liga Natación</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --deep: #060d08;
+    --navy: #0b1a0e;
+    --mid: #0f2e14;
+    --teal: #2db84a;
+    --cyan: #4fd468;
+    --foam: #a8e6b4;
+    --white: #eaf5ec;
+    --gold: #f0c040;
+    --red: #ff6b6b;
+    --green: #56cf8c;
+    --glass: rgba(45,184,74,0.08);
+    --border: rgba(79,212,104,0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--deep);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === WATER BG === */
+  .water-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse at 20% 50%, #0d2e12 0%, var(--deep) 60%),
+                radial-gradient(ellipse at 80% 20%, #061008 0%, transparent 50%);
+  }
+  .bubble {
+    position: fixed; border-radius: 50%;
+    background: radial-gradient(circle, rgba(45,184,74,0.15), transparent 70%);
+    animation: rise linear infinite;
+    z-index: 0;
+  }
+  @keyframes rise {
+    0%   { transform: translateY(110vh) scale(0.5); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 0.5; }
+    100% { transform: translateY(-20vh) scale(1.2); opacity: 0; }
+  }
+
+  /* === LAYOUT === */
+  .app {
+    position: relative; z-index: 1;
+    max-width: 700px; margin: 0 auto;
+    padding: 0 16px 80px;
+  }
+
+  /* === HEADER === */
+  header {
+    text-align: center;
+    padding: 40px 0 24px;
+  }
+  .logo-icon {
+    font-size: 48px; display: block;
+    filter: drop-shadow(0 0 12px var(--teal));
+    margin-bottom: 8px;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 8vw, 3.6rem);
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, var(--foam), var(--teal));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+  header p {
+    font-size: 0.78rem; color: var(--foam);
+    opacity: 0.55; margin-top: 4px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+
+  /* === LIVE CLOCK === */
+  .live-clock {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin: 16px 0;
+  }
+  .clock-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: blink 1.2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .clock-time { font-family: 'Bebas Neue'; font-size: 1.6rem; color: var(--teal); letter-spacing: 0.1em; }
+  .clock-date { font-size: 0.75rem; color: var(--foam); opacity: 0.6; }
+
+  /* === POOL TABS === */
+  .pool-tabs {
+    display: flex; gap: 10px; margin-bottom: 20px;
+  }
+  .pool-tab {
+    flex: 1; padding: 12px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--glass);
+    backdrop-filter: blur(8px);
+    color: var(--foam); opacity: 0.55;
+    font-family: 'DM Sans'; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; text-align: center;
+    transition: all 0.25s ease;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .pool-tab .tab-emoji { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+  .pool-tab:hover { opacity: 0.85; border-color: var(--cyan); }
+  .pool-tab.active {
+    opacity: 1;
+    background: rgba(0,180,216,0.18);
+    border-color: var(--teal);
+    color: var(--cyan);
+    box-shadow: 0 0 20px rgba(45,184,74,0.2), inset 0 0 12px rgba(45,184,74,0.08);
+  }
+
+  /* === DAY SELECTOR === */
+  .day-strip {
+    display: flex; gap: 6px; margin-bottom: 22px;
+    overflow-x: auto; padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .day-strip::-webkit-scrollbar { display: none; }
+  .day-btn {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 50px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--foam); opacity: 0.5;
+    font-family: 'DM Sans'; font-size: 0.78rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s ease;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .day-btn:hover { opacity: 0.85; border-color: var(--cyan); }
+  .day-btn.active {
+    background: var(--teal); border-color: var(--teal);
+    color: var(--deep); opacity: 1; font-weight: 700;
+    box-shadow: 0 0 14px rgba(45,184,74,0.5);
+  }
+  .day-btn.today-marker { border-color: var(--gold); color: var(--gold); opacity: 0.75; }
+  .day-btn.today-marker.active { background: var(--gold); border-color: var(--gold); color: var(--deep); }
+
+  /* === SECTION LABEL === */
+  .section-label {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .section-label h2 {
+    font-family: 'Bebas Neue'; font-size: 1.4rem; letter-spacing: 0.06em;
+    color: var(--cyan);
+  }
+  .section-label .sub { font-size: 0.72rem; color: var(--foam); opacity: 0.5; text-transform: uppercase; letter-spacing: 0.1em; }
+  .section-label .pill {
+    margin-left: auto; padding: 3px 10px;
+    border-radius: 50px; background: rgba(0,180,216,0.12);
+    border: 1px solid var(--border);
+    font-size: 0.7rem; color: var(--teal); letter-spacing: 0.08em;
+  }
+
+  /* === SCHEDULE GRID === */
+  .schedule-grid { display: flex; flex-direction: column; gap: 8px; }
+
+  .slot-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--glass);
+    backdrop-filter: blur(6px);
+    transition: all 0.2s ease;
+    position: relative; overflow: hidden;
+  }
+  .slot-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--teal);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .slot-card:hover { border-color: rgba(72,202,228,0.35); transform: translateX(3px); }
+  .slot-card:hover::before { opacity: 1; }
+  .slot-card.current-slot {
+    background: rgba(0,180,216,0.12);
+    border-color: var(--teal);
+    box-shadow: 0 0 16px rgba(45,184,74,0.15);
+  }
+  .slot-card.current-slot::before { opacity: 1; }
+  .slot-card.past-slot { opacity: 0.35; }
+
+  .slot-time {
+    font-family: 'Bebas Neue'; font-size: 1.5rem;
+    color: var(--teal); letter-spacing: 0.05em;
+    min-width: 60px;
+  }
+  .slot-sep { width: 1px; height: 32px; background: var(--border); flex-shrink: 0; }
+
+  .slot-info { flex: 1; }
+  .slot-label { font-size: 0.72rem; color: var(--foam); opacity: 0.5; text-transform: uppercase; letter-spacing: 0.1em; }
+  .slot-cupos { font-size: 1rem; font-weight: 600; color: var(--white); }
+
+  .cupos-bar {
+    display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap;
+  }
+  .cupo-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--teal); opacity: 0.7;
+    transition: transform 0.1s;
+  }
+  .slot-card:hover .cupo-dot { transform: scale(1.15); }
+
+  .badge-now {
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--deep);
+    background: var(--gold); padding: 3px 8px; border-radius: 50px;
+    flex-shrink: 0;
+  }
+
+  /* === EMPTY STATE === */
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--foam); opacity: 0.4;
+  }
+  .empty-state .empty-icon { font-size: 3rem; display: block; margin-bottom: 12px; }
+  .empty-state p { font-size: 0.85rem; }
+
+  /* === INFO CARD === */
+  .info-card {
+    margin-top: 28px; padding: 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(240,192,64,0.2);
+    background: rgba(240,192,64,0.05);
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .info-card .info-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .info-card p { font-size: 0.8rem; color: var(--foam); opacity: 0.7; line-height: 1.6; }
+  .info-card strong { color: var(--gold); }
+
+  /* === FOOTER === */
+  footer {
+    text-align: center; margin-top: 48px;
+    font-size: 0.7rem; color: var(--foam); opacity: 0.3;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  /* Responsive */
+  @media (max-width: 420px) {
+    .slot-time { font-size: 1.25rem; min-width: 50px; }
+    .slot-card { padding: 12px 14px; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="water-bg" id="waterBg"></div>
+
+<div class="app">
+  <header>
+    <span class="logo-icon">🏊</span>
+    <h1>Liga Natación</h1>
+    <p>Complejo Acuático César Zapata · INDER Medellín</p>
+  </header>
+
+  <div class="live-clock">
+    <div class="clock-dot"></div>
+    <div class="clock-time" id="clockTime">00:00</div>
+    <div class="clock-date" id="clockDate">—</div>
+  </div>
+
+  <!-- Pool Tabs -->
+  <div class="pool-tabs">
+    <button class="pool-tab active" onclick="switchPool('olimpica')" id="tab-olimpica">
+      <span class="tab-emoji">🌊</span>
+      Piscina Olímpica
+    </button>
+    <button class="pool-tab" onclick="switchPool('subacuatica')" id="tab-subacuatica">
+      <span class="tab-emoji">🤿</span>
+      Subacuática
+    </button>
+  </div>
+
+  <!-- Day selector -->
+  <div class="day-strip" id="dayStrip"></div>
+
+  <!-- Content area -->
+  <div id="content"></div>
+
+  <div class="info-card">
+    <span class="info-icon">📍</span>
+    <p><strong>INDER Medellín</strong> · Calle 47D N.° 75-276, barrio Velodromo<br>
+    PBX: (604) 369 90 00 · <strong>inder.gov.co</strong><br>
+    Los cupos indicados son el máximo por turno. La disponibilidad real puede variar.</p>
+  </div>
+
+  <footer>
+    <p>Horarios fotografiados en instalaciones INDER · Medellín</p>
+  </footer>
+</div>
+
+<script>
+// =====================
+// DATA
+// =====================
+const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DAY_MAP = [1,2,3,4,5,6,0]; // JS getDay() → Mon=1,Sun=0
+
+// Piscina Olímpica: Lun–Vie, 9–14h, 10 cupos c/u
+const olimpicaData = {
+  Lunes:     [{h:'9:00',c:10},{h:'10:00',c:10},{h:'11:00',c:10},{h:'12:00',c:10},{h:'13:00',c:10},{h:'14:00',c:10}],
+  Martes:    [{h:'9:00',c:10},{h:'10:00',c:10},{h:'11:00',c:10},{h:'12:00',c:10},{h:'13:00',c:10},{h:'14:00',c:10}],
+  Miércoles: [{h:'9:00',c:10},{h:'10:00',c:10},{h:'11:00',c:10},{h:'12:00',c:10},{h:'13:00',c:10},{h:'14:00',c:10}],
+  Jueves:    [{h:'9:00',c:10},{h:'10:00',c:10},{h:'11:00',c:10},{h:'12:00',c:10},{h:'13:00',c:10},{h:'14:00',c:10}],
+  Viernes:   [{h:'9:00',c:10},{h:'10:00',c:10},{h:'11:00',c:10},{h:'12:00',c:10},{h:'13:00',c:10},{h:'14:00',c:10}],
+  Sábado:    [],
+  Domingo:   [],
+};
+
+// Subacuática (práctica libre)
+const subacuaticaData = {
+  Lunes:     [{h:'7:00 a.m.',c:18},{h:'8:00 a.m.',c:18},{h:'9:00 a.m.',c:18},{h:'10:00 a.m.',c:18},{h:'11:00 a.m.',c:18},{h:'2:00 p.m.',c:13},{h:'3:00 p.m.',c:13},{h:'4:00 p.m.',c:10},{h:'5:00 p.m.',c:10},{h:'6:00 p.m.',c:18}],
+  Martes:    [{h:'7:00 a.m.',c:18},{h:'8:00 a.m.',c:18},{h:'11:00 a.m.',c:18},{h:'2:00 p.m.',c:13},{h:'3:00 p.m.',c:13},{h:'4:00 p.m.',c:10},{h:'5:00 p.m.',c:10},{h:'6:00 p.m.',c:18},{h:'7:00 p.m.',c:5}],
+  Miércoles: [{h:'7:00 a.m.',c:18},{h:'8:00 a.m.',c:18},{h:'11:00 a.m.',c:18},{h:'2:00 p.m.',c:13},{h:'3:00 p.m.',c:13},{h:'4:00 p.m.',c:10},{h:'5:00 p.m.',c:10},{h:'6:00 p.m.',c:18}],
+  Jueves:    [{h:'7:00 a.m.',c:18},{h:'8:00 a.m.',c:18},{h:'11:00 a.m.',c:18},{h:'2:00 p.m.',c:13},{h:'3:00 p.m.',c:13},{h:'4:00 p.m.',c:10},{h:'5:00 p.m.',c:10},{h:'6:00 p.m.',c:18},{h:'7:00 p.m.',c:5}],
+  Viernes:   [{h:'7:00 a.m.',c:18},{h:'8:00 a.m.',c:18},{h:'11:00 a.m.',c:18},{h:'2:00 p.m.',c:18},{h:'3:00 p.m.',c:18},{h:'4:00 p.m.',c:10},{h:'5:00 p.m.',c:10},{h:'6:00 p.m.',c:18}],
+  Sábado:    [{h:'8:00 a.m.',c:18},{h:'9:00 a.m.',c:13},{h:'10:00 a.m.',c:13},{h:'11:00 a.m.',c:13},{h:'12:00 p.m.',c:13},{h:'1:00 p.m.',c:13}],
+  Domingo:   [{h:'8:00 a.m.',c:18},{h:'9:00 a.m.',c:18},{h:'10:00 a.m.',c:18},{h:'11:00 a.m.',c:18},{h:'12:00 p.m.',c:18},{h:'1:00 p.m.',c:18}],
+};
+
+// =====================
+// STATE
+// =====================
+let currentPool = 'olimpica';
+let selectedDayIdx = null; // index into DAYS
+
+function getTodayIdx() {
+  const d = new Date().getDay(); // 0=Sun,1=Mon...
+  return DAY_MAP.indexOf(d);
+}
+
+// =====================
+// CLOCK
+// =====================
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('clockTime').textContent = `${h}:${m}`;
+  const days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('clockDate').textContent =
+    `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// =====================
+// TIME COMPARISON
+// Parse "9:00" or "7:00 a.m." → minutes since midnight
+// =====================
+function parseToMinutes(h) {
+  h = h.trim();
+  const pm = h.includes('p.m.');
+  const am = h.includes('a.m.');
+  h = h.replace('a.m.','').replace('p.m.','').trim();
+  const [hh, mm] = h.split(':').map(Number);
+  let total = hh * 60 + (mm || 0);
+  if (pm && hh !== 12) total += 720;
+  if (am && hh === 12) total -= 720;
+  return total;
+}
+
+function nowMinutes() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+
+// =====================
+// BUBBLES
+// =====================
+function spawnBubbles() {
+  const bg = document.getElementById('waterBg');
+  for (let i = 0; i < 8; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    const size = 40 + Math.random() * 120;
+    b.style.width = size + 'px';
+    b.style.height = size + 'px';
+    b.style.left = Math.random() * 100 + 'vw';
+    b.style.animationDuration = (12 + Math.random() * 18) + 's';
+    b.style.animationDelay = (-Math.random() * 20) + 's';
+    bg.appendChild(b);
+  }
+}
+spawnBubbles();
+
+// =====================
+// RENDER
+// =====================
+function switchPool(pool) {
+  currentPool = pool;
+  document.querySelectorAll('.pool-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + pool).classList.add('active');
+  renderDays();
+  renderContent();
+}
+
+function renderDays() {
+  const strip = document.getElementById('dayStrip');
+  const todayIdx = getTodayIdx();
+  strip.innerHTML = '';
+  DAYS.forEach((d, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn';
+    const isToday = i === todayIdx;
+    if (isToday) btn.classList.add('today-marker');
+    if (i === selectedDayIdx) btn.classList.add('active');
+    const short = d.length > 5 ? d.slice(0,3) : d;
+    btn.textContent = isToday ? short + ' ✦' : short;
+    btn.onclick = () => { selectedDayIdx = i; renderDays(); renderContent(); };
+    strip.appendChild(btn);
+  });
+}
+
+function renderContent() {
+  const el = document.getElementById('content');
+  const data = currentPool === 'olimpica' ? olimpicaData : subacuaticaData;
+  const dayName = DAYS[selectedDayIdx];
+  const slots = data[dayName] || [];
+
+  // Label
+  const todayIdx = getTodayIdx();
+  const isToday = selectedDayIdx === todayIdx;
+  const now = nowMinutes();
+
+  let html = `<div class="section-label">
+    <div>
+      <h2>${currentPool === 'olimpica' ? 'Piscina Olímpica' : 'Práctica Libre Subacuática'}</h2>
+      <div class="sub">${currentPool === 'olimpica' ? '2.40 m profundidad · 10 cupos por turno' : 'INDER Medellín'}</div>
+    </div>
+    <div class="pill">${dayName}</div>
+  </div>`;
+
+  if (slots.length === 0) {
+    html += `<div class="empty-state">
+      <span class="empty-icon">🚫</span>
+      <p>Sin turnos disponibles este día.</p>
+    </div>`;
+  } else {
+    html += `<div class="schedule-grid">`;
+    slots.forEach((slot, i) => {
+      const slotMin = parseToMinutes(slot.h);
+      const nextSlotMin = slots[i+1] ? parseToMinutes(slots[i+1].h) : slotMin + 60;
+      const isPast   = isToday && now > slotMin + 55;
+      const isCurrent = isToday && now >= slotMin && now < nextSlotMin;
+
+      let cls = 'slot-card';
+      if (isCurrent) cls += ' current-slot';
+      if (isPast)    cls += ' past-slot';
+
+      const dots = Array(slot.c).fill('<div class="cupo-dot"></div>').join('');
+      const badge = isCurrent ? '<span class="badge-now">Ahora</span>' : '';
+
+      html += `<div class="${cls}">
+        <div class="slot-time">${slot.h.replace(' a.m.','').replace(' p.m.','')}</div>
+        <div class="slot-sep"></div>
+        <div class="slot-info">
+          <div class="slot-label">${slot.h.includes('p.m.') ? 'p.m.' : slot.h.includes('a.m.') ? 'a.m.' : ''} Cupos disponibles</div>
+          <div class="slot-cupos">${slot.c} cupos</div>
+          <div class="cupos-bar">${dots}</div>
+        </div>
+        ${badge}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// =====================
+// INIT
+// =====================
+selectedDayIdx = getTodayIdx() >= 0 ? getTodayIdx() : 0;
+renderDays();
+renderContent();
+</script>
+</body>
+</html>
